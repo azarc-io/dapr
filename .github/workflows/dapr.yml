@@ -466,111 +466,111 @@ jobs:
             --prerelease true \
             ${RELEASE_ARTIFACT[*]}
         shell: bash
-  docker-publish:
-    name: Publish docker images
-    needs: build
-    if: github.event_name != 'pull_request'
-    env:
-      DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
-      LATEST_TAG: latest
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        sidecar_flavor: ["allcomponents", "stablecomponents"]
-    steps:
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v4
-      - name: Parse release version and set REL_VERSION and LATEST_RELEASE
-        run: python ./.github/scripts/get_release_version.py ${{ github.event_name }}
-      - name: Updates version for sidecar flavor
-        if: matrix.sidecar_flavor != 'allcomponents'
-        run: |
-          echo "REL_VERSION=${REL_VERSION}-${{matrix.sidecar_flavor}}" >>${GITHUB_ENV}
-          echo "LATEST_TAG=latest-${{matrix.sidecar_flavor}}" >>${GITHUB_ENV}
-          # We are doing image flavors only for Linux.
-          echo "DOCKER_MULTI_ARCH=linux-amd64 linux-arm64 linux-arm" >>${GITHUB_ENV}
-          # Only sidecar is built
-          echo "BINARIES=daprd" >>${GITHUB_ENV}
-        shell: bash
-      - name: Set REPO_OWNER
-        shell: bash
-        run: |
-          REPO_OWNER=${{ github.repository_owner }}
-          # Lowercase the value
-          echo "REPO_OWNER=${REPO_OWNER,,}" >>${GITHUB_ENV}
-      - name: Docker Hub Login
-        uses: docker/login-action@v3
-        if: env.DOCKER_REGISTRY != ''
-        with:
-          username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASS }}
-      - name: GitHub Container Registry login
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push Docker multiarch manifest to Docker Hub
-        if: env.DOCKER_REGISTRY_ID != ''
-        env:
-          DOCKER_REGISTRY_ID: ${{ secrets.DOCKER_REGISTRY_ID }}
-          DAPR_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
-        run: |
-          echo "Build Docker multiarch manifest and push to Docker"
-          DAPR_TAG="${{ env.REL_VERSION }}" make docker-publish
-
-          # Publish the `-mariner` tag
-          # Mariner images are built only on linux/amd64 and linux/arm64
-          # Also, these use the "latest-mariner" tag if it's the latest
-          DOCKER_MULTI_ARCH="linux-amd64 linux-arm64" \
-          DAPR_TAG="${{ env.REL_VERSION }}-mariner" \
-          LATEST_TAG=${{ env.LATEST_TAG }}-mariner \
-            make docker-publish
-        shell: bash
-      - name: Build and push Docker multiarch Windows manifest to Docker Hub
-        if: env.DOCKER_REGISTRY_ID != '' && matrix.sidecar_flavor == 'allcomponents'
-        env:
-          DOCKER_REGISTRY_ID: ${{ secrets.DOCKER_REGISTRY_ID }}
-          DAPR_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
-        run: |
-          # Publish the `-windows-amd64` manifest.
-          # Note, the "latest" tag from the previous step already contains 
-          # the windows images, so we don't need to publish the "latest-windows-amd64" tag.
-          DOCKER_MULTI_ARCH="windows-1809-amd64 windows-ltsc2022-amd64" \
-          DAPR_TAG="${{ env.REL_VERSION }}-windows-amd64" \
-          LATEST_RELEASE=false \
-          MANIFEST_TAG="${{ env.REL_VERSION }}" \
-            make docker-publish
-        shell: bash
-      - name: Build and push Docker multiarch manifest to GHCR
-        env:
-          DAPR_REGISTRY: ghcr.io/${{ env.REPO_OWNER }}
-        run: |
-          echo "Build Docker multiarch manifest and push to GHCR"
-          DAPR_TAG="${{ env.REL_VERSION }}" make docker-publish
-
-          # Publish the `-mariner` tag
-          # Mariner images are built only on linux/amd64 and linux/arm64
-          # Also, these use the "latest-mariner" tag if it's the latest
-          DOCKER_MULTI_ARCH="linux-amd64 linux-arm64" \
-          DAPR_TAG="${{ env.REL_VERSION }}-mariner" \
-          LATEST_TAG=${{ env.LATEST_TAG }}-mariner \
-            make docker-publish
-      - name: Build and push Docker multiarch Windows manifest to GHCR
-        if: matrix.sidecar_flavor == 'allcomponents'
-        env:
-          DAPR_REGISTRY: ghcr.io/${{ env.REPO_OWNER }}
-        run: |
-          # Publish the `-windows-amd64` manifest.
-          # Note, the "latest" tag from the previous step already contains 
-          # the windows images, so we don't need to publish the "latest-windows-amd64" tag.
-          DOCKER_MULTI_ARCH="windows-1809-amd64 windows-ltsc2022-amd64" \
-          DAPR_TAG="${{ env.REL_VERSION }}-windows-amd64" \
-          LATEST_RELEASE=false \
-          MANIFEST_TAG="${{ env.REL_VERSION }}" \
-            make docker-publish
-        shell: bash
+#  docker-publish:
+#    name: Publish docker images
+#    needs: build
+#    if: github.event_name != 'pull_request'
+#    env:
+#      DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+#      LATEST_TAG: latest
+#    runs-on: ubuntu-latest
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        sidecar_flavor: ["allcomponents"]
+#    steps:
+#      - name: Check out code into the Go module directory
+#        uses: actions/checkout@v4
+#      - name: Parse release version and set REL_VERSION and LATEST_RELEASE
+#        run: python ./.github/scripts/get_release_version.py ${{ github.event_name }}
+#      - name: Updates version for sidecar flavor
+#        if: matrix.sidecar_flavor != 'allcomponents'
+#        run: |
+#          echo "REL_VERSION=${REL_VERSION}-${{matrix.sidecar_flavor}}" >>${GITHUB_ENV}
+#          echo "LATEST_TAG=latest-${{matrix.sidecar_flavor}}" >>${GITHUB_ENV}
+#          # We are doing image flavors only for Linux.
+#          echo "DOCKER_MULTI_ARCH=linux-amd64 linux-arm64 linux-arm" >>${GITHUB_ENV}
+#          # Only sidecar is built
+#          echo "BINARIES=daprd" >>${GITHUB_ENV}
+#        shell: bash
+#      - name: Set REPO_OWNER
+#        shell: bash
+#        run: |
+#          REPO_OWNER=${{ github.repository_owner }}
+#          # Lowercase the value
+#          echo "REPO_OWNER=${REPO_OWNER,,}" >>${GITHUB_ENV}
+#      - name: Docker Hub Login
+#        uses: docker/login-action@v3
+#        if: env.DOCKER_REGISTRY != ''
+#        with:
+#          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+#          password: ${{ secrets.DOCKER_REGISTRY_PASS }}
+#      - name: GitHub Container Registry login
+#        uses: docker/login-action@v3
+#        with:
+#          registry: ghcr.io
+#          username: ${{ github.repository_owner }}
+#          password: ${{ secrets.GITHUB_TOKEN }}
+#      - name: Build and push Docker multiarch manifest to Docker Hub
+#        if: env.DOCKER_REGISTRY_ID != ''
+#        env:
+#          DOCKER_REGISTRY_ID: ${{ secrets.DOCKER_REGISTRY_ID }}
+#          DAPR_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+#        run: |
+#          echo "Build Docker multiarch manifest and push to Docker"
+#          DAPR_TAG="${{ env.REL_VERSION }}" make docker-publish
+#
+#          # Publish the `-mariner` tag
+#          # Mariner images are built only on linux/amd64 and linux/arm64
+#          # Also, these use the "latest-mariner" tag if it's the latest
+#          DOCKER_MULTI_ARCH="linux-amd64 linux-arm64" \
+#          DAPR_TAG="${{ env.REL_VERSION }}-mariner" \
+#          LATEST_TAG=${{ env.LATEST_TAG }}-mariner \
+#            make docker-publish
+#        shell: bash
+#      - name: Build and push Docker multiarch Windows manifest to Docker Hub
+#        if: env.DOCKER_REGISTRY_ID != '' && matrix.sidecar_flavor == 'allcomponents'
+#        env:
+#          DOCKER_REGISTRY_ID: ${{ secrets.DOCKER_REGISTRY_ID }}
+#          DAPR_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+#        run: |
+#          # Publish the `-windows-amd64` manifest.
+#          # Note, the "latest" tag from the previous step already contains
+#          # the windows images, so we don't need to publish the "latest-windows-amd64" tag.
+#          DOCKER_MULTI_ARCH="windows-1809-amd64 windows-ltsc2022-amd64" \
+#          DAPR_TAG="${{ env.REL_VERSION }}-windows-amd64" \
+#          LATEST_RELEASE=false \
+#          MANIFEST_TAG="${{ env.REL_VERSION }}" \
+#            make docker-publish
+#        shell: bash
+#      - name: Build and push Docker multiarch manifest to GHCR
+#        env:
+#          DAPR_REGISTRY: ghcr.io/${{ env.REPO_OWNER }}
+#        run: |
+#          echo "Build Docker multiarch manifest and push to GHCR"
+#          DAPR_TAG="${{ env.REL_VERSION }}" make docker-publish
+#
+#          # Publish the `-mariner` tag
+#          # Mariner images are built only on linux/amd64 and linux/arm64
+#          # Also, these use the "latest-mariner" tag if it's the latest
+#          DOCKER_MULTI_ARCH="linux-amd64 linux-arm64" \
+#          DAPR_TAG="${{ env.REL_VERSION }}-mariner" \
+#          LATEST_TAG=${{ env.LATEST_TAG }}-mariner \
+#            make docker-publish
+#      - name: Build and push Docker multiarch Windows manifest to GHCR
+#        if: matrix.sidecar_flavor == 'allcomponents'
+#        env:
+#          DAPR_REGISTRY: ghcr.io/${{ env.REPO_OWNER }}
+#        run: |
+#          # Publish the `-windows-amd64` manifest.
+#          # Note, the "latest" tag from the previous step already contains
+#          # the windows images, so we don't need to publish the "latest-windows-amd64" tag.
+#          DOCKER_MULTI_ARCH="windows-1809-amd64 windows-ltsc2022-amd64" \
+#          DAPR_TAG="${{ env.REL_VERSION }}-windows-amd64" \
+#          LATEST_RELEASE=false \
+#          MANIFEST_TAG="${{ env.REL_VERSION }}" \
+#            make docker-publish
+#        shell: bash
 #  helm:
 #    name: Package Helm Chart
 #    needs: [publish, docker-publish]
