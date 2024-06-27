@@ -154,9 +154,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            target_os: linux
-            target_arch: amd64
+#          - os: ubuntu-latest
+#            target_os: linux
+#            target_arch: amd64
           - os: windows-2022
             target_os: windows
             target_arch: amd64
